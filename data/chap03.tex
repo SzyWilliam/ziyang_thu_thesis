@@ -98,96 +98,80 @@ IoTDB内部采用ClientManager接口来统一管理对外的Thrift连接。Clien
 （其实这里我觉得应该变成Thrift连接）
 
 
+\section{基于集群实时监控的检测}
+
+IoTDB通过建设了较为完整的可观测性，从而进一步提升集群快速、准确发现故障的能力，显著提升了故障诊断和问题排查的能力。
+
+可观测性不仅是监控的延伸，更是一种深入理解系统内部状态和行为的方法论。它通过收集和分析Metrics（指标）、Logging（日志）和Tracing（追踪）等多维度的数据，帮助运维人员全面掌握系统的运行状况，从而实现更高效的故障发现和解决。
+
+可观测性是指通过系统的外部输出，推断其内部状态的能力。与传统的监控不同，可观测性强调对系统行为的深层次理解，而不仅仅是关注预定义的指标。在分布式系统中，由于组件之间的复杂交互和依赖关系，故障的根源往往难以追踪。可观测性通过提供多维度的数据，帮助运维人员从全局视角理解系统行为，快速定位故障根源。
+
+可观测性对于故障发现的意义主要体现在以下几个方面：
+
+早期预警： 通过实时监控Metrics指标，可以及时发现系统的异常行为，如CPU使用率过高、内存泄漏等，从而实现早期预警。
+快速定位： 通过分析Logging日志和Tracing追踪数据，可以追踪请求的完整生命周期，了解请求在各个组件之间的流转情况，快速定位故障发生的具体位置。
+根因分析： 通过综合分析Metrics、Logging和Tracing数据，可以深入了解故障的根本原因，为问题解决提供有力支持。
+性能优化： 可观测性不仅可以用于故障发现，还可以帮助运维人员了解系统的性能瓶颈，从而进行针对性的优化。
 
 
-中文论文的数学符号默认遵循 GB/T 3102.11—1993《物理科学和技术中使用的数学符号》
-\footnote{原 GB 3102.11—1993，自 2017 年 3 月 23 日起，该标准转为推荐性标准。}。
-该标准参照采纳 ISO 31-11:1992 \footnote{目前已更新为 ISO 80000-2:2019。}，
-但是与 \TeX{} 默认的美国数学学会（AMS）的符号习惯有所区别。
-具体地来说主要有以下差异：
-\begin{enumerate}
-  \item 大写希腊字母默认为斜体，如
-    \begin{equation*}
-      \Gamma \Delta \Theta \Lambda \Xi \Pi \Sigma \Upsilon \Phi \Psi \Omega.
-    \end{equation*}
-    注意有限增量符号 $\increment$ 固定使用正体，模板提供了 \cs{increment} 命令。
-  \item 小于等于号和大于等于号使用倾斜的字形 $\le$、$\ge$。
-  \item 积分号使用正体，比如 $\int$、$\oint$。
-  \item
-    偏微分符号 $\partial$ 使用正体。
-  \item
-    省略号 \cs{dots} 按照中文的习惯固定居中，比如
-    \begin{equation*}
-      1, 2, \dots, n \quad 1 + 2 + \dots + n.
-    \end{equation*}
-  \item
-    实部 $\Re$ 和虚部 $\Im$ 的字体使用罗马体。
-\end{enumerate}
+Metrics、Logging和Tracing的介绍
 
-以上数学符号样式的差异可以在模板中统一设置。
-另外国标还有一些与 AMS 不同的符号使用习惯，需要用户在写作时进行处理：
-\begin{enumerate}
-  \item 数学常数和特殊函数名用正体，如
-    \begin{equation*}
-      \uppi = 3.14\dots; \quad
-      \symup{i}^2 = -1; \quad
-      \symup{e} = \lim_{n \to \infty} \left( 1 + \frac{1}{n} \right)^n.
-    \end{equation*}
-  \item 微分号使用正体，比如 $\dif y / \dif x$。
-  \item 向量、矩阵和张量用粗斜体（\cs{symbf}），如 $\symbf{x}$、$\symbf{\Sigma}$、$\symbfsf{T}$。
-  \item 自然对数用 $\ln x$ 不用 $\log x$。
-\end{enumerate}
+Metrics（指标）：
+Metrics是量化的度量，用于描述系统的运行状态。例如，CPU使用率、内存使用率、请求响应时间等。
+IoTDB通过内置的Prometheus reporter，将各个节点的Metrics数据暴露给Prometheus进行采集，并通过Grafana面板进行可视化展示。
+通过监控Metrics指标，运维人员可以实时了解系统的运行状况，及时发现异常行为。
+Logging（日志）：
+Logging是记录系统运行过程中发生的事件和错误信息。
+IoTDB的Logging日志包含了详细的系统运行信息，如请求处理过程、错误信息等。
+通过分析Logging日志，运维人员可以了解系统内部的运行细节，追踪错误发生的轨迹。
+Tracing（追踪）：
+Tracing是追踪请求在分布式系统中的完整生命周期。
+通过Tracing，运维人员可以了解请求在各个组件之间的流转情况，分析请求的性能瓶颈。
+Tracing对于分布式系统中的性能分析和故障诊断具有重要意义。
 
+\begin{figure}
+  \centering
+  \includegraphics[width=0.4\linewidth]{c03-metrics-arch.png}
+  \caption{集群拓扑感知能力}
+  \label{fig:c03-metrics-arch}
+\end{figure}
 
-英文论文的数学符号使用 \TeX{} 默认的样式。
-如果有必要，也可以通过设置 \verb|math-style| 选择数学符号样式。
+图\ref{fig:c03-metrics-arch}给出了IoTDB可观测性的监控建设的架构图。IoTDB内部通过实现通用的监控模块服务，来实现统一的监控接口，来隔离不同的采集程序的接口和IoTDB不同模块之间的差异。
+每一个模块都会调用监控服务提供的接口，注册并上报自身的相关重要数据，例如内存使用情况、关键路径上的性能指标等。
 
-关于量和单位推荐使用
-\href{http://mirrors.ctan.org/macros/latex/contrib/siunitx/siunitx.pdf}{\pkg{siunitx}}
-宏包，
-可以方便地处理希腊字母以及数字与单位之间的空白，
-比如：
-\SI{6.4e6}{m}，
-\SI{9}{\micro\meter}，
-\si{kg.m.s^{-1}}，
-\SIrange{10}{20}{\degreeCelsius}。
+监控最终会被外部程序采集，例如，会被存储到Prometheus上，甚至是别的IoTDB实例当中。根据外部存储的不同，IoTDB在启动的时候会根据配置加载对应的上报模块。
+在每一个DataNode和ConfigNode内部都有上报模块，负责将监控模块收集到的数据定期上报到外部存储中。目前上报模块支持两种不同的采集方式，一种是拉取，例如普罗米修斯，会定期向节点中的reporter拉取数据。还有一种是主动的推送模式，例如IoTDB。
 
 
 
-\section{数学公式}
-
-数学公式可以使用 \env{equation} 和 \env{equation*} 环境。
-注意数学公式的引用应前后带括号，通常使用 \cs{eqref} 命令，比如式\eqref{eq:example}。
-\begin{equation}
-  \frac{1}{2 \uppi \symup{i}} \int_\gamma f = \sum_{k=1}^m n(\gamma; a_k) \mathscr{R}(f; a_k).
-  \label{eq:example}
-\end{equation}
-
-多行公式尽可能在“=”处对齐，推荐使用 \env{align} 环境。
-\begin{align}
-  a & = b + c + d + e \\
-    & = f + g
-\end{align}
-
-
-
-\section{数学定理}
-
-定理环境的格式可以使用 \pkg{amsthm} 或者 \pkg{ntheorem} 宏包配置。
-用户在导言区载入这两者之一后，模板会自动配置 \env{theorem}、\env{proof} 等环境。
-
-\begin{theorem}[Lindeberg--Lévy 中心极限定理]
-  设随机变量 $X_1, X_2, \dots, X_n$ 独立同分布， 且具有期望 $\mu$ 和有限的方差 $\sigma^2 \ne 0$，
-  记 $\bar{X}_n = \frac{1}{n} \sum_{i+1}^n X_i$，则
-  \begin{equation}
-    \lim_{n \to \infty} P \left(\frac{\sqrt{n} \left( \bar{X}_n - \mu \right)}{\sigma} \le z \right) = \Phi(z),
-  \end{equation}
-  其中 $\Phi(z)$ 是标准正态分布的分布函数。
-\end{theorem}
-\begin{proof}
-  Trivial.
-\end{proof}
-
-同时模板还提供了 \env{assumption}、\env{definition}、\env{proposition}、
-\env{lemma}、\env{theorem}、\env{axiom}、\env{corollary}、\env{exercise}、
-\env{example}、\env{remar}、\env{problem}、\env{conjecture} 这些相关的环境。
+这里应该给出IoTDB的监控模块的实现
+（包括所有的采集指标）
+- CPU：CPU 核数，利用率等
+- 磁盘：带宽，IOPS 等
+- 网络：发送速度，接收速度，TCP 连接数等
+- JVM：
+  - 线程
+    - JVM 当前线程数
+    - 当前 daemon 线程数
+    - 峰值线程数
+    - 当前处于各种状态的线程数
+  - 垃圾回收
+    - YGC、FGC 发生次数与原因
+    - YGC、FGC 累计耗时与原因
+    - YGC、FGC 最大耗时与原因
+    - GC 消耗 CPU 的比例
+    - 从 GC 之前到 GC 之后老年代内存池大小正增长的累计
+    - 老年代内存的历史最大值
+    - GC 之后老年代内存的大小
+    - 在一个 GC 之后到下一个 GC 之前年轻代增加的内存
+  - 内存
+    - 已经使用的缓冲区大小
+    - 最大缓冲区大小
+    - 当前缓冲区数量
+    - 当前向 JVM 申请的内存大小
+    - JVM 最大内存
+    - JVM 已使用内存大小
+  - Classes
+    - JVM 累计卸载的 class 数量
+    - JVM 累计加载的 class 数量
+    - JVM 消耗在编译上的时间

@@ -132,3 +132,7 @@ IoTDB在设计的时候，选择在保证最终一致性的前提下，允许短
     \caption{集群变更状态下高可用容错时序图}
     \label{fig:c05-cluster-change}
 \end{figure}
+
+图\ref{fig:c05-cluster-change}展示了在集群变更状态下系统的高可用容错时序图。用户在通过Session进行写入请求的时候，DataNode1先从ConfigNode这里获取了分区情况，并根据这个分区情况进行写入规划。然而，在规划期间，出于负载均衡的考虑，ConfigNode决定进行Region迁移的操作，将原本在DataNode2上的数据分区给迁移到DataNode3上。
+写入规划对这一次Region迁移并不知情，并且继续向DataNode2发出请求，此时由于数据已被迁移出该节点，所以这个请求会以数据不存在的原因失败。
+DataNode1会将这个情况返回给Session，并且附上重试的建议。Session会继续重试写入这个请求，这个请求会再次被发送到DataNode1上。此时，DataNode1会再次从ConfigNode这边获取最新的分区情况。此时最新的分区已经能够反映上次迁移的改变，因此DataNode1能够正确认识到数据此时存活在DataNode3上，从而向DataNode3发起请求，最终成功获取数据，本次写入也能顺利执行。

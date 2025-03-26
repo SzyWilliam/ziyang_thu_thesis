@@ -133,12 +133,6 @@
 
 整个三级重试的的实现方案。
 
-\subsection{客户端的重试}
-
-1. 客户端重试的总结性概括。
-2. 客户端重试的解决问题。
-3. 客户端重试的实现方案。
-
 \subsection{Session的重定向重试}
 
 在Apache IoTDB中，Session扮演着至关重要的角色，它不仅是客户端应用程序与IoTDB DataNode集群之间进行通信的桥梁，更是实现服务自动发现的关键组件。具体来说，Session封装了与IoTDB服务器建立连接、发送请求、接收响应等一系列底层操作，为应用程序提供了简洁高效的API接口。通过Session，客户端能够轻松地执行数据写入、查询、元数据操作等任务，而无需关心复杂的网络通信细节。此外，Session还具备自动发现DataNode集群服务的能力，这意味着即使集群拓扑结构发生变化，客户端也能自动适应并保持与可用节点的连接，从而确保了系统的高可用性和稳定性。值得注意的是，Session的设计充分考虑了性能和安全性，它通过连接池等机制来减少连接建立的开销，并通过身份验证和权限控制等手段来保障数据的安全性。因此，Session是IoTDB客户端应用程序开发中不可或缺的核心组件。
@@ -159,13 +153,118 @@ DataNode在写入的时候，还会进行Redirect的提示，这个行为是集�
 
 \subsection{协调者}
 
+协调者(Coordinator)是IoTDB的重要组成部分，他负责接受客户端的SQL请求，负责SQL解析、物理计划和分布式执行计划的生成，对每一个FragmentInstance进行调度和执行，以及最终结果的的收集和返回。
+
+协调者侧重试的目的是避免因为单副本、单节点的失效而影响查询和写入的能力。通过充分利用底下共识模块提供的多副本的能力，协调者能够在某个副本写入失败的时候自动转移到另外一个副本上，从而规避系统的暂时性错误。
 
 
 
-\subsection{共识层}
+
+
+
+\subsection{Client的重试策略}
+
+
+
+
+\section{共识模块}
+
+
+在Apache IoTDB中，共识模块是构建高可用能力和故障容错能力的基石。数据管理、元数据管理、ConfigNode的服务都依赖共识模块。
+
+共识层的核心目标在于为同一份数据维护多个满足一致性要求的数据副本，这种多副本的能力不但是抵御故障、实现系统自动容错能力的基础，更是构建负载均衡、节点迁移和扩缩容等高级功能的前提。
+
+对内，共识层隐藏了数据副本同步和一致性维护的诸多挑战，包括数据的异步复制、周期性的数据检查与校验、网络波动下的断点续传、以及可能出现的数据冲突和解决策略，通过一致性算法确保即使在网络分区、节点故障等异常情况下，所有数据副本都能在最终保持高度一致。
+
+对外，共识层的多副本抽象简化了上层依赖模块的开发工作。对于写入模块而言，它无需关注底层数据同步的细节，只需要写入一个副本即可。对于查询引擎而言，它可以放心地从任意一个副本读取数据，并确保读取到的数据满足系统定义的一致性条件。
+
+
+\subsection{统一框架下的不同协议}
+
+共识模块定义了一系列标准化的接口，包括创建和销毁数据副本、执行读写操作、以及进行成员变更等，从而实现了共识模块的插拔能力，允许使用者通过配置的方式灵活选择不同的共识协议实现。
+共识模块依赖复制状态机\cite{lamport1978statemachine}(replicated state machine)的规范实现标准化。实现了复制状态机接口的包括存储引擎DataRegionStateMachie，元数据存储引擎SchemaRegionStateMachine和集群中心服务ConfigRegionStateMachine。
+
+目前IoTDB提供了三种不同的共识协议的实现，分别是基于Raft算法的强一致性共识协议RatisConsensus，基于多主复制的会话一致性共识协议IoTConsensus和基于主从快照同步的最终一致性共识协议IoTConsensusV2。
+
+图\ref{fig:c04-consensus-arch} 给出了共识层统一框架的示意图。本节接下去的内容将会简要介绍每一个共识协议的实现和提供的高可用保障级别。
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.99\linewidth]{c04-consensus-arch.png}
+  \caption{共识层统一框架架构图}
+  \label{fig:c04-consensus-arch}
+\end{figure}
+
+
+\subsection{RatisConsensus}
+
+RatisConsensus是IoTDB提供的强一致性共识协议实现，基于Raft共识算法和Apache Ratis\cite{ratis}开源项目实现。目前，RatisConsensus是集群元数据管理和ConfigNode服务默认的共识协议。
+
+RatisConsenus内部会维护奇数(2N+1，默认为3)个副本，并为每一个副本提供线性一致性的语义保障。由于底层依赖的Raft算法是基于单主复制结构的共识协议，因此在任何时刻，这些副本只有一个可以接受上层的写入请求，被称为Leader副本，剩下节点从Leader副本同步数据，可以接受只读请求。
+RatisConsensus能够自动容忍少数副本的失效依然保持数据和服务的可用性。具体来说，对于一个2n+1副本的RatisConsensus服务，最多能够容忍n个副本的失效。同时，RatisConsensus能够保证在网络分区情况下的数据一致性，同一时刻能保证最多只有一个副本成为Leader 副本。
+
+RatisConsensus底层的一致性协议是Raft算法，包含Leader选举、日志复制和安全性保障等核心要素。Raft通过随机超时来实现Leader选举，通过任期(Term)来保证每次选举的唯一性和权威性。Leader接受写入数据，并将自身日志强制复制给所有Follower，最终所有的日志可以被排列出一个副本之间达成共识的全序序列，不同的副本均按照这个全序序列应用日志，从而实现副本数据之间的一致性。为了确保安全性，Raft 引入了 Commit 机制，即只有在大多数副本上保存了对应日志条目后，该日志才能被 Commit，上层才能收到共识层写入成功的回应。
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.6\linewidth]{c04-ratis-write.drawio.png}
+  \caption{RatisConsensus数据写入和副本复制流程}
+  \label{fig:c04-ratis-write}
+\end{figure}
+
+图\ref{fig:c04-ratis-write}给出了一条数据提交给RatisConsensus之后背后的数据复制流程。用户写入数据之后，会由Leader这边负责生成持久化日志并同步到所有节点上，在T1时刻，有超过半数的节点完成持久化同步之后，该操作的状态将会改变成Commit，Leader会应用这个日志并返回对应的结果。Raft算法会在后台保证所有节点能够最终都Commit并应用这个日志。
+
+
+
+\subsection{IoTConsensus}
+
+IoTConsensus是IoTDB提供的会话一致性共识协议实现，基于多主异步复制的自研实现。目前，IoTConsensus是集群数据管理的可选共识协议之一。
+
+IoTConsensus的设计初衷是为牺牲一定的可用性换取极致的可用性和更高的性能。
+用于在工业物联网场景中，设备不断的时序数据，每台设备的写入请求往
+往是串行无重复的，因而并发的写入请求之间通常不存在冲突。因此，IoTConsensus放宽了串形化的一致性约束，允许任何一个副本都能接受读写请求，并且请求在一个副本上执行成功即可返回客户端操作成功。
+
+
+\begin{figure}
+  \centering
+  \subcaptionbox{IoTConsensu整体结构\label{fig:c04-iot-arch}}
+    {\includegraphics[width=0.4\linewidth]{c04-iot-arch.png}}
+  \subcaptionbox{IoTConsensus写入流程\label{fig:c04-iot-write}}
+    {\includegraphics[width=0.58\linewidth]{c04-iot-write.png}}
+  \caption{IoTConsensus示意图}
+  \label{fig:c04-iot-consensus}
+\end{figure}
+
+图\ref{fig:c04-iot-arch}展示了IoTConsensus的结构，允许任何一个副本接受客户端的写入请求，并通过每个节点的后台异步复制线程将写入请求同步给其他的副本。
+
+
+值得注意的是，当不同副本的数据产生冲突是，可能会导致副本之间数据无法达到最终一致，该问题的解决需要应用层的介入。例如在 Apache IoTDB 中，如果观察到某个序列的数据在不同副本上不一致，则可以使用 Select Into 子句拉取该序列在当前 Leader 副本上的数据并
+重新向该共识组流式写入。但在绝大部分的正常应用场景，这种不一致不会发生。
+
+
+\subsection{IoTCConsensusV2}
+
+IoTConsensusV2是IoTDB提供的最终一致性共识协议实现，基于主从异步复制的自研实现。目前，IoTConsensusV2是集群数据管理的可选共识协议之一。
+
+IoTConsensusV2相较于IoTConsensus相比，进一步牺牲了副本之间的同步时延、一致性级别，换取了极高的写入吞吐。
+
+IoTConsensusV2的总体思路是使用TsFile实现副本之间的数据同步。一般来说，IoTConsensus会设置主从两个副本，并在两个副本之间架设Pipe的通信管道。当主副本的存储引擎每次生成一个TsFile之后，会通过Pipe向从副本同步这个TsFile。整个数据的同步过程仅涉及到常数级别的复杂度操作，同时不用经过 Wal 的磁盘持久化和 Memtable 的内存维护，因此写入吞吐非常高，并且能够解决IoTConsensus存在的由于Follower宕机或Leader节点写入速率大于同步速率导致的WAL文件堆积和写入阻塞的问题。
+
+
+然而，TsFile的生成相比每一条写入日志需要较长的时间，副本间数据同步延迟可达到几十分钟甚至是几个小时的数据。在两副本的情况下，如果主副本宕机，可能出现由于部分数据还未同步导致的数据暂时丢失的情况。如果宕机节点后续永久没有加入集群，那么这部分数据就会永久丢失。
+
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.8\linewidth]{c04-pipe-consensus.png}
+  \caption{R}
+  \label{fig:c04-pipe-consensus}
+\end{figure}
+
+图\ref{fig:c04-pipe-consensus}给出了PipeConsensus的整体架构。
 
 
 \subsection{熔断和降级措施}
 
 
-\section{基于共识层的数据副本保障}
+
