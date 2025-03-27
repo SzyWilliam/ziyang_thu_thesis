@@ -117,7 +117,7 @@ Cassandra通过数据副本来保证可用性和容错能力，通过一致性�
 Cassandra通过复制因子（RF）为同一个分区保留多个副本，保证即使一个副本宕机，其他副本仍然可以满足请求，且副本可以被放置在不同的数据中心，从而获得更高的安全性和性能。Cassandra通过一致性级别（CL）来决定操作的一致性，表示在操作被视为成功之前，必须向协调器确认读取或写入操作的最小Cassandra节点数。
 
 
-\subsection{节点故障检测}
+\subsection{节点故障检测}\label{sec:cassandra-failure-detecttion}
 
 Cassandra中的每个节点通过Gossip协议来定期交换彼此的信息，并使用Phi累积性故障(Phi Accrual)检测算法\cite{hayashibara2004spl}来判断某个节点是否出现故障。
 
@@ -125,6 +125,7 @@ Cassandra中的每个节点通过Gossip协议来定期交换彼此的信息，�
 
 Cassandra的Phi累积性故障检测算法会根据Gossip交换的状态信息来计算出某个节点失效的可能性，避免了简单的地使用超时机制，而是通过统计分析心跳间隔，来预测节点失效的概率。Phi Accrual检测器会记录节点之间心跳信息到达的时间间隔，计算出一个“Phi”值，表示节点失效的可能性。Cassandra会设置一个Phi阈值，当Phi值超过这个阈值时，就认为节点失效。Phi Accrual检测器能够根据网络状况动态调整在网络不稳定的情况下，它会降低Phi阈值，以避免误判，在网络稳定的情况下，它会提高Phi阈值，以提高检测的准确性。在瞬态网络问题期间，节点可能暂时无法访问。使用phi accrual可以更宽容的对待这类网络问题，减少不必要的节点失效判断。
 
+「Phi Accural算法有冷启动的问题」
 
 \section{TiDB系统的高可用方案}
 TiDB\cite{huang2020tidb}是开源的分布式关系性数据库，同时支持OLTP和OLAP的能力，具备水平扩缩容、金融级高可用、实时 HTAP、云原生、兼容MySQL生态等优势。
