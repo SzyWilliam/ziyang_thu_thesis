@@ -2,4 +2,62 @@
 
 \chapter{实验章节}
 
+\section{实验准备}
+
+\subsection{测试环境}
+
+\section{故障检测和判断}
+
+\subsection{Phi Accural故障检测器的行为表现}
+1.1 Phi 检测器 对于 Elasped Time 的行为
+
+1.2 Phi 对于 Pause 接受度的行为
+\subsection{Phi Accural相较于Fixed的对比}
+1.3 Phi 相较于 Fixed 在发现错误的平均延迟
+
+1.4 Phi 相较于 环境的动态适应行为。
+
+\subsection{非对称网络分区的检测速度}
+
+2.1 非对称网络分区之后的检测速度
+2.2 非对称网络分区恢复后的检测速度
+
+\subsection{基于Thrift连接的进程宕机检测速度}
+
+基于TCP连接的问题检测行为
+
+\section{副本和共识协议}
+
+
+故障处理：
+
+0. 不同共识协议的故障表现（这个感觉跟你的毕设关系不大？新豪之前做过一版，可以跟他聊聊）
+
+0.1 主副本失效之后的failover时间
+    2副本 3副本 5副本 三个不同共识协议的比较
+0.2 副本回归之后的catch up恢复时间
+    三个不同共识协议的比较
+
+2.  非对称网络分区的处理效果
+
+
+
+
+端到端测试：
+
+4. 不同故障场景不同的RTO情况
+SR 统一用 Ratis，DataRegion 可以换 RatisConsensus, IoTConsensus, IoTConsensus
+4.1 磁盘写满（用 readonly 就行）
+4.2 进程宕机（测试 kill -9 和脚本停止两种场景）
+4.3 非对称网络分区（A,B,C 三个节点，其中两个节点之间无法通信）
+4.4 对称网络分区（A,B,C 三个节点，其中 A 与其它两个节点无法通信）
+4.5 集群变更（并发读写过程中测试缩容）
+
+5. 性能损失
+5.1 规划的性能损失
+5.2 调度的性能损失
+5.3 benchmark端到端在进程宕机、网络分区、非对称网络分区的吞吐
+
+
+
 \section{Phi的实验章节}\label{exp-phi}
