@@ -43,7 +43,7 @@ ConfigNode会将集群的所有节点纳入心跳管理的范畴。具体来说�
 
 3. 影响集群的查询能力。集群在查询调度的规划时，如果对网络可达性不了解，那么查询计划可能会错误地生成，导致这个查询计划最后失败。在章节\ref{sec:topology-query-plan}对这一部分的错误有详细的说明。
 
-\subsection{DataNode间的对等心跳}
+\subsection{DataNode间的对等心跳}\label{sec:datanode-intra-heartbeat}
 
 为解决上述的非对称网络分区的检测，本文提出基于DataNode间的对等心跳汇总的集群拓扑感知能力，通过DataNode之间定期交换心跳来获取相互之间的连通性，并将所有节点的结果汇总上报给ConfigNode Leader，从而让ConfigNode Leader具备集群的网络拓扑感知能力。
 
@@ -133,7 +133,7 @@ IoTDB内部构建了基于指标 (Metrics)、日志 (Logs)、追踪 (Traces)三�
 3. 故障发生后的改进和优化。IoTDB的开发人员可以通过历史可观测数据，在日常开发或者故障发生之后，更好地理解系统行为，深入分析集群的性能、资源利用率、功能是否达到预期，从而对系统更精准更好的改进，提升开发团队的工作效率。
 
 
-\section{基于Thrift长连接的进程失效快速检测优化}
+\section{基于Thrift长连接的进程失效快速检测优化}\label{sec:detection-thrift}
 
 在\ref{failure_detection}中提到的故障研判，通过对心跳行为建立概率模型来判断节点是否发生故障。这种故障研判需要一定的观察窗口才能作出可靠的判断，因此发现故障通常需要十秒或者更久。
 
