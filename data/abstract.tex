@@ -3,37 +3,47 @@
 % 中英文摘要和关键字
 
 \begin{abstract}
-  论文的摘要是对论文研究内容和成果的高度概括。
-  摘要应对论文所研究的问题及其研究目的进行描述，对研究方法和过程进行简单介绍，对研究成果和所得结论进行概括。
-  摘要应具有独立性和自明性，其内容应包含与论文全文同等量的主要信息。
-  使读者即使不阅读全文，通过摘要就能了解论文的总体内容和主要成果。
 
-  论文摘要的书写应力求精确、简明。
-  切忌写成对论文书写内容进行提要的形式，尤其要避免“第 1 章……；第 2 章……；……”这种或类似的陈述方式。
+随着物联网 (IoT) 技术的飞速发展，时序数据库在存储和管理海量设备数据方面扮演着至关重要的角色。Apache IoTDB 作为一款流行的开源时序数据库，其在分布式部署场景下的高可用性 (High Availability, HA) 和容错能力 (Fault Tolerance, FT) 对于保障数据安全和服务连续性至关重要。
 
-  关键词是为了文献标引工作、用以表示全文主要内容信息的单词或术语。
-  关键词不超过 5 个，每个关键词中间用分号分隔。
+然而，现有的高可用和容错机制存在对于故障的检测不够完全、检测时间较长、检测机制僵硬、对部分故障的容错和可用性不足的问题，需要进一步优化以满足日益增长的工业需求。我们需要实现RPO为零、不会丢失任何已提交的数据，并达到RTO为分钟级、最大限度地减少服务中断对业务的影响，这要求对集群故障的更早、更全面、更准确地检测与研判，并通过集群现有能力的深度协同与优化，更快、更鲁棒的方式进行故障的转移和自动恢复。
+
+本论文针对 Apache IoTDB 现有的高可用和容错机制进行了深入分析，并在此基础上提出了一系列优化方案。本工作的逐渐贡献如下：
+
+1. 提出了针对分布式系统故障场景和高可用架构的整体建模方法。本文研究了分布式系统中常见的故障种类，分析了故障的共性，并在此基础上提出了IoTDB高可用的整体方法论和架构。
+
+
+2. 实现了高可用整体架构中的关键故障检测能力和自动容错和恢复能力。本文构建了更加完善的故障检测机制，并针对所有的故障建设自动容错能力，通过ConfigNode、客户端Session、服务端协调者、服务端共识模块等多个关键组件的协同，使得集群能够有效应对更广泛的故障类型，提升系统的韧性。
+
+
+3. 进行了大量的测试和实验，证明了该高可用架构能够有效解决现有问题并应对新的挑战，为构建高可靠的分布式系统提供了实践支撑和数据验证。
+
+实验结果表明，本工作的优化让IoTDB的故障检测能力更为完善、检测速度更为迅速、检测误报率下降。本文的工作能够顺利检测磁盘写满、进程宕机、网络对称分区、网络非对称分区等故障，并针对这些故障场景做到了RPO为零、RTO为分钟级的故障容错能力。
+
 
   % 关键词用“英文逗号”分隔，输出时会自动处理为正确的分隔符
   \thusetup{
-    keywords = {关键词 1, 关键词 2, 关键词 3, 关键词 4, 关键词 5},
+    keywords = {工业物联网, 时序数据库, 高可用和容错, 故障检测和转移, RTO和RPO},
   }
 \end{abstract}
 
 \begin{abstract*}
-  An abstract of a dissertation is a summary and extraction of research work and contributions.
-  Included in an abstract should be description of research topic and research objective, brief introduction to methodology and research process, and summary of conclusion and contributions of the research.
-  An abstract should be characterized by independence and clarity and carry identical information with the dissertation.
-  It should be such that the general idea and major contributions of the dissertation are conveyed without reading the dissertation.
+With the rapid development of Internet of Things (IoT) technology, time-series databases play a crucial role in storing and managing massive amounts of device data. As a popular open-source time-series database, Apache IoTDB's high availability (HA) and fault tolerance (FT) capabilities in distributed deployment scenarios are vital for ensuring data security and service continuity.
 
-  An abstract should be concise and to the point.
-  It is a misunderstanding to make an abstract an outline of the dissertation and words “the first chapter”, “the second chapter” and the like should be avoided in the abstract.
+However, existing HA and FT mechanisms suffer from limitations such as incomplete fault detection, long detection times, rigid detection mechanisms, and insufficient fault tolerance and availability for certain types of failures. These mechanisms require further optimization to meet growing industrial demands. We aim to achieve a zero Recovery Point Objective (RPO), ensuring no loss of committed data, and a Recovery Time Objective (RTO) at the minute level, minimizing the business impact of service interruptions. This necessitates earlier, more comprehensive, and more accurate detection and assessment of cluster failures, along with faster and more robust failover and automatic recovery achieved through deep coordination and optimization of the cluster's existing capabilities.
 
-  Keywords are terms used in a dissertation for indexing, reflecting core information of the dissertation.
-  An abstract may contain a maximum of 5 keywords, with semi-colons used in between to separate one another.
+This thesis conducts an in-depth analysis of Apache IoTDB's existing HA and FT mechanisms and, based on this analysis, proposes a series of optimization schemes. The main contributions of this work are as follows:
+
+1. Proposed a holistic modeling method for distributed system failure scenarios and high availability architectures. This work studies common types of failures in distributed systems, analyzes their common characteristics, and based on this, proposes an overall methodology and architecture for IoTDB high availability.
+
+2. Implemented critical fault detection and automatic fault tolerance/recovery capabilities within the proposed HA architecture. This work constructs a more comprehensive fault detection mechanism and establishes automatic fault tolerance for various failure types. Through the coordination of key components like ConfigNode, client Session, server-side coordinator, and server-side consensus module, the cluster can effectively handle a broader range of failures, enhancing system resilience.
+
+3. Conducted extensive testing and experimentation, demonstrating that the proposed HA architecture effectively addresses existing issues and meets new challenges. This provides practical support and empirical validation for constructing highly reliable distributed systems.
+
+Experimental results show that the optimizations in this work enhance IoTDB's fault detection capabilities, making them more comprehensive and faster, while reducing the false positive rate. This work enables the successful detection of various failures, including disk full, process crashes, and both symmetric and asymmetric network partitions. For these scenarios, it achieves fault tolerance with a zero RPO and a minute-level RTO. 
 
   % Use comma as separator when inputting
   \thusetup{
-    keywords* = {keyword 1, keyword 2, keyword 3, keyword 4, keyword 5},
+    keywords* = {Industrial Internet of Things, Time-series Database, High Availability and Fault Tolerance, Failure Detection and Failover, RTO/RPO},
   }
 \end{abstract*}
