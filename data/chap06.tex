@@ -306,14 +306,28 @@ Phi Accrual依然保持了非常良好的动态调整能力，误报率依然保
 端到端测试：
 
 4. 不同故障场景不同的RTO情况
+3个benchmark写入三个副本，
+
 SR 统一用 Ratis，DataRegion 可以换 RatisConsensus, IoTConsensus, IoTConsensus
 
 4.1 磁盘写满（用 readonly 就行）
+
+IoT/IoTConsensusV2: 短暂下降1s左右，然后导引到其他节点，然后开始下降20\%
+Ratis-Follower： 短暂下降1s左右，然后导引到其他节点，然后开始下降10p
+Ratis-Leader：在6s内下降到0，然后引导到其他节点，然后开始下降10p
+
+
+
 4.2 进程宕机（测试 kill -9 和脚本停止两种场景）
 4.3 非对称网络分区（A,B,C 三个节点，其中两个节点之间无法通信）
+
+IoTConsensu
+
+
 4.4 对称网络分区（A,B,C 三个节点，其中 A 与其它两个节点无法通信）
 4.5 集群变更（并发读写过程中测试缩容）
 
 
 
 
+\section{和其他数据库的RTO和RPO对比}
