@@ -108,7 +108,7 @@ IoTDB通过DataNode之间的对等心跳来检测非对称网络分区的故障�
 DataNode之间会定期和所有的其他DataNode之间交换心跳，验证连通性。如果DataNode1和DataNode2发生了非对称网络分区，那么DataNode1和DataNode2之间无法进行心跳交换。DataNode1和DataNode2分别会将这个情况上报给ConfigNode Leader。ConfigNode Leader会通过Phi Accrual算法分析对等心跳，并且研判出DataNode1和DataNode2之间出现了非对称网络分区的问题，实现故障的检测。
 
 
-\subsection{容错方案}
+\subsection{高可用容错方案}
 
 IoTDB通过协调者在规划阶段的容错和Session侧的协同来共同解决非对称网络分区的问题。
 

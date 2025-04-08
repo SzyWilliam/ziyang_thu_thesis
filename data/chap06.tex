@@ -299,35 +299,142 @@ Phi Accrual依然保持了非常良好的动态调整能力，误报率依然保
 
 
 本节测试了\ref{chap-failure-scenarios}章节中描述的常见错误场景的RTO和RPO情况。
+本节测试部署了3个ConfigNode和3个DataNode，分别使用3个IoT-Benchmark向3个DataNode写入数据，通过模拟故障的发生，来获取集群在故障时期的RPO/RTO表现和整体的性能数据。本节测试中，
+ConfigNode和DataNode之间的心跳交换间隔为1秒，DataNode之间对等心跳的交换间隔为5秒，为了减少随机超时对测试结果的影响，本节将RatisConsensus的选举最小超时设置为2.9秒，最大超时设置为3.1秒。Phi Accrual检测器的阈值为30，可容忍的最大暂停为10秒。
+
+
+本节设计的吞吐计算方法为三个Benchmark给出的端到端吞吐的平均值。
+本节设计的RPO计算方法为：当故障发生且Benchmark写入结束之后，使用客户端查询集群中的数据数量，并与Benchmark写入的数据数量进行比较。
+本节设计的RTO计算方法为：当故障发生之后，连接在故障节点的Benchmark从请求发出到该请求最终成功执行所需要的时间。
+
+
+\begin{table}[h!]
+    \centering
+    \caption{不同故障下的RPO表现}
+    \label{tab:exp-rpo-overview}
+    \begin{tabular}{@{}lllll@{}}
+        \toprule
+        故障 & RatisConsensus & IoTConsensus & IoTConsensusV2 \\
+        \midrule
+        磁盘写满 & 0 & 0 & 0  \\
+        进程宕机 & 0 & 0 & 0  \\
+        对称网络分区 & 0 & 0 & 0  \\
+        非对称网络分区 & 0 & 0 & 0  \\
+        集群变更 & 0 & 0 & 0  \\
+        \bottomrule
+    \end{tabular}
+  \end{table}
+
+表\ref{tab:exp-rpo-overview}给出了集群的RPO表现。实验证明在上述的故障中，IoTDB成功做到了RPO为零的目标。这意味着数据一旦在IoTDB集群提交，IoTDB能够保证数据不会丢失。
+
+
+
+  \begin{table}[h!]
+    \centering
+    \caption{不同故障下的RTO表现}
+    \label{tab:exp-rto-overview}
+    \begin{tabular}{@{}lllll@{}}
+        \toprule
+        故障 & RatisConsensus & IoTConsensus & IoTConsensusV2 \\
+        \midrule
+        磁盘写满 & 3.30s(Leader) / 1.03s(Follower) & 0.99s & 1.04s  \\
+        进程宕机 & 3.05s(Leader) / 0.19s(Follower) & 0.21s & 0.19s  \\
+        对称网络分区 & 13.72s & 14.10s & 13.88s  \\
+        非对称网络分区 & 59.90s & 60.04s & 61.99s  \\
+        集群变更 & 0 & 0 & 0  \\
+        \bottomrule
+    \end{tabular}
+  \end{table}
+
+表\ref{tab:exp-rto-overview}给出了集群的RTO表现。实验证明在上述的故障中，IoTDB的RTO在秒级到分钟级的范围内。
+
+
+
+\subsection{磁盘写满}
+
+磁盘写满故障的测试方法为：保持IoTDB集群运行，在第30s内手动设置一个DataNode为只读，观察benchmark写入的吞吐变化。
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.99\linewidth]{exp-rto-rpo-diskfull.png}
+    \caption{磁盘写满故障下的集群吞吐表现}
+    \label{fig:exp-rto-rpo-diskfull}
+\end{figure}
+
+图\ref{fig:exp-rto-rpo-diskfull}给出了磁盘写满故障下的集群吞吐表现。
+实验结果表明，对于IoTConsensus和IoTConsensusV2来说，故障会导致约1/3的吞吐下降，但在1s时间之后集群会通过自动容错恢复吞吐，恢复后的吞吐约为最初的80\%。
+对于RatisConsensus来说，如果磁盘写满的是Leader副本，故障会导致约3s的不可用，随后集群吞吐逐渐恢复。如果磁盘写满的是Follower副本，那么故障只会导致吞吐约1/3的下降，同样在1s之后通过自动容错恢复吞吐。恢复后的吞吐约为最初的90\%。
+
+\subsection{进程宕机}
+
+进程宕机故障的测试方法为：保持IoTDB集群运行，在第30s的时候通过操作系统的kill -9命令强制关闭一个DataNode进程，观察benchmark写入的吞吐变化。
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.99\linewidth]{exp-rto-rpo-process-down.png}
+    \caption{进程宕机故障下的集群吞吐表现}
+    \label{fig:exp-rto-rpo-process-down}
+\end{figure}
+
+图\ref{fig:exp-rto-rpo-process-down}给出了磁盘写满故障下的集群吞吐表现。
+实验结果表明，对于IoTConsensus和IoTConsensusV2来说，故障会导致约1/3的吞吐下降，但在200毫秒时间之后集群会通过自动容错恢复吞吐。对于RatisConsensus来说，如果磁盘写满的是Leader副本，故障会导致约3s的不可用，随后集群吞吐逐渐恢复。如果磁盘写满的是Follower副本，那么故障只会导致吞吐约1/3的下降，同样在200毫秒之后通过自动容错恢复吞吐。
+
+
+\subsection{对称网络分区}
+对称网络分区故障的测试方法为：保持IoTDB集群运行，在第60s的时候配置iptable使其中一个节点和剩下两个节点之间的网络都不可达，观察benchmark写入的吞吐变化。
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.99\linewidth]{exp-rto-rpo-sym-network-partition.png}
+    \caption{对称网络分区故障下的集群吞吐表现}
+    \label{fig:exp-rto-rpo-sym-network-partition}
+\end{figure}
+
+图\ref{fig:exp-rto-rpo-sym-network-partition}给出了对称网络分区故障下的集群吞吐表现。
+结果表明，在实验运行的时间里，对称网络分区对IoTConsensus和IoTConsensusV2两个共识协议的吞吐未产生明显的影响。对于RatisConsensus而言，故障会导致吞吐约1/3的下降，直到15秒之后才会逐渐恢复。
+
+\subsection{非对称网络分区}
+
+非对称网络分区故障的测试方法为：保持IoTDB集群运行，在第60s的时候配置iptable使其中两个节点之间的网络不可达，观察benchmark写入的吞吐变化。
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.99\linewidth]{exp-rto-rpo-asym-network-partition.png}
+    \caption{非对称网络分区故障下的集群吞吐表现}
+    \label{fig:exp-rto-rpo-asym-network-partition}
+\end{figure}
+
+图\ref{fig:exp-rto-rpo-asym-network-partition}给出了非对称网络分区故障下的集群吞吐表现。
+结果表明，在实验运行的时间里（10分钟），非对称网络分区对IoTConsensus和IoTConsensusV2两个共识协议的吞吐未产生明显的影响。对于RatisConsensus而言，故障会导致吞吐约1/3的下降，直到60秒之后才会逐渐恢复。
+
+\subsection{集群变更}
+
+集群变更场景下的RPO/RTO的测试方法为：保持IoTDB集群运行，持续运行扩容脚本和缩容脚本，将DataNode的数量不断从3个扩容成4个，再从4个缩容成3个，持续这个过程，观察benchmark写入的吞吐变化。
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.99\linewidth]{exp-rpo-rto-conf-change.png}
+    \caption{集群变更阶段的吞吐表现}
+    \label{fig:exp-rpo-rto-conf-change}
+\end{figure}
+
+图\ref{fig:exp-rpo-rto-conf-change}给出了集群变更阶段的吞吐表现。
+实验结果表明，集群变更并没有对集群和RTO有明显的影响。对于RatisConsensus来说，集群变更导致了整体吞吐约5\%的略微下降。
 
 
 
 
-端到端测试：
+% \section{和其他数据库的RTO和RPO对比}
 
-4. 不同故障场景不同的RTO情况
-3个benchmark写入三个副本，
+% 给出端到端的一个比较吧
 
-SR 统一用 Ratis，DataRegion 可以换 RatisConsensus, IoTConsensus, IoTConsensus
-
-4.1 磁盘写满（用 readonly 就行）
-
-IoT/IoTConsensusV2: 短暂下降1s左右，然后导引到其他节点，然后开始下降20\%
-Ratis-Follower： 短暂下降1s左右，然后导引到其他节点，然后开始下降10p
-Ratis-Leader：在6s内下降到0，然后引导到其他节点，然后开始下降10p
-
-
-
-4.2 进程宕机（测试 kill -9 和脚本停止两种场景）
-4.3 非对称网络分区（A,B,C 三个节点，其中两个节点之间无法通信）
-
-IoTConsensu
-
-
-4.4 对称网络分区（A,B,C 三个节点，其中 A 与其它两个节点无法通信）
-4.5 集群变更（并发读写过程中测试缩容）
-
-
-
-
-\section{和其他数据库的RTO和RPO对比}
+% IoTDB
+% TimeScale DB 
+% tdengine
+% opentsdb
+% Oceanbase

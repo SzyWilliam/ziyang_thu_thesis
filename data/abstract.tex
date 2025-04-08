@@ -4,11 +4,13 @@
 
 \begin{abstract}
 
-随着物联网 (IoT) 技术的飞速发展，时序数据库在存储和管理海量设备数据方面扮演着至关重要的角色。Apache IoTDB 作为一款流行的开源时序数据库，其在分布式部署场景下的高可用性 (High Availability, HA) 和容错能力 (Fault Tolerance, FT) 对于保障数据安全和服务连续性至关重要。
+随着物联网 （IoT） 技术的飞速发展，时序数据库在存储和管理海量设备数据方面扮演着至关重要的角色。Apache IoTDB 作为一款流行的开源时序数据库，其在分布式部署场景下的高可用性 （High Availability, HA） 和容错能力 （Fault Tolerance, FT） 对于保障数据安全和服务连续性至关重要。
 
-然而，现有的高可用和容错机制存在对于故障的检测不够完全、检测时间较长、检测机制僵硬、对部分故障的容错和可用性不足的问题，需要进一步优化以满足日益增长的工业需求。我们需要实现RPO为零、不会丢失任何已提交的数据，并达到RTO为分钟级、最大限度地减少服务中断对业务的影响，这要求对集群故障的更早、更全面、更准确地检测与研判，并通过集群现有能力的深度协同与优化，更快、更鲁棒的方式进行故障的转移和自动恢复。
+然而，IoTDB 现有的高可用和容错机制存在对于故障的检测不够完全、检测时间较长、检测机制僵硬、对部分故障的容错和可用性不足的问题，需要进一步优化以满足日益增长的工业需求。
 
-本论文针对 Apache IoTDB 现有的高可用和容错机制进行了深入分析，并在此基础上提出了一系列优化方案。本工作的逐渐贡献如下：
+本论文针对 Apache IoTDB 现有的高可用和容错机制进行了深入分析，并在此基础上提出了一系列优化方案，对集群故障的更早、更全面、更准确地检测与研判，并通过集群现有能力的深度协同与优化，更快、更鲁棒的方式进行故障的转移和自动恢复，最终实现RPO为零、不会丢失任何已提交的数据，并达到RTO为分钟级、最大限度地减少服务中断对业务的影响的能力
+
+本工作的贡献如下：
 
 1. 提出了针对分布式系统故障场景和高可用架构的整体建模方法。本文研究了分布式系统中常见的故障种类，分析了故障的共性，并在此基础上提出了IoTDB高可用的整体方法论和架构。
 
@@ -28,19 +30,21 @@
 \end{abstract}
 
 \begin{abstract*}
-With the rapid development of Internet of Things (IoT) technology, time-series databases play a crucial role in storing and managing massive amounts of device data. As a popular open-source time-series database, Apache IoTDB's high availability (HA) and fault tolerance (FT) capabilities in distributed deployment scenarios are vital for ensuring data security and service continuity.
+  
+With the rapid development of Internet of Things (IoT) technology, time-series databases play a crucial role in storing and managing massive amounts of device data. As a popular open-source time-series database, Apache IoTDB's High Availability (HA) and Fault Tolerance (FT) in distributed deployment scenarios are essential for ensuring data security and service continuity.
 
-However, existing HA and FT mechanisms suffer from limitations such as incomplete fault detection, long detection times, rigid detection mechanisms, and insufficient fault tolerance and availability for certain types of failures. These mechanisms require further optimization to meet growing industrial demands. We aim to achieve a zero Recovery Point Objective (RPO), ensuring no loss of committed data, and a Recovery Time Objective (RTO) at the minute level, minimizing the business impact of service interruptions. This necessitates earlier, more comprehensive, and more accurate detection and assessment of cluster failures, along with faster and more robust failover and automatic recovery achieved through deep coordination and optimization of the cluster's existing capabilities.
+However, IoTDB's existing HA and FT mechanisms suffer from issues such as incomplete fault detection, long detection times, rigid detection mechanisms, and insufficient fault tolerance and availability for certain types of failures. These require further optimization to meet growing industrial demands.
 
-This thesis conducts an in-depth analysis of Apache IoTDB's existing HA and FT mechanisms and, based on this analysis, proposes a series of optimization schemes. The main contributions of this work are as follows:
+This thesis conducts an in-depth analysis of Apache IoTDB's existing HA and FT mechanisms and, based on this analysis, proposes a series of optimization schemes aimed at achieving earlier, more comprehensive, and more accurate detection and assessment of cluster failures. Through deep coordination and optimization of the cluster's existing capabilities, it facilitates faster and more robust failover and automatic recovery. The ultimate goal is to achieve a Recovery Point Objective (RPO) of zero, ensuring no loss of committed data, and a Recovery Time Objective (RTO) at the minute level, minimizing the impact of service interruptions on business operations.
 
-1. Proposed a holistic modeling method for distributed system failure scenarios and high availability architectures. This work studies common types of failures in distributed systems, analyzes their common characteristics, and based on this, proposes an overall methodology and architecture for IoTDB high availability.
+The contributions of this work are as follows:
 
-2. Implemented critical fault detection and automatic fault tolerance/recovery capabilities within the proposed HA architecture. This work constructs a more comprehensive fault detection mechanism and establishes automatic fault tolerance for various failure types. Through the coordination of key components like ConfigNode, client Session, server-side coordinator, and server-side consensus module, the cluster can effectively handle a broader range of failures, enhancing system resilience.
+Proposed a holistic modeling method for distributed system failure scenarios and HA architectures. This paper studies common types of failures in distributed systems, analyzes their common characteristics, and based on this, proposes an overall methodology and architecture for IoTDB high availability.
+Implemented key fault detection capabilities and automatic fault tolerance and recovery capabilities within the overall HA architecture. This work establishes more complete fault detection mechanisms and builds automatic fault tolerance capabilities for all identified failures. Through the coordination of multiple key components such as ConfigNode, client Session, server-side Coordinator, and server-side Consensus module, the cluster is enabled to effectively handle a wider range of failure types, enhancing system resilience.
+Conducted extensive testing and experiments to demonstrate that the proposed HA architecture effectively addresses existing problems and meets new challenges, providing practical support and empirical validation for building highly reliable distributed systems.
+Experimental results show that the optimizations in this work enhance IoTDB's fault detection capabilities, making them more complete and faster, while reducing the false positive rate. This work successfully detects failures such as disk full, process crashes, symmetric network partitions, and asymmetric network partitions, and achieves fault tolerance with an RPO of zero and a minute-level RTO for these failure scenarios.
 
-3. Conducted extensive testing and experimentation, demonstrating that the proposed HA architecture effectively addresses existing issues and meets new challenges. This provides practical support and empirical validation for constructing highly reliable distributed systems.
 
-Experimental results show that the optimizations in this work enhance IoTDB's fault detection capabilities, making them more comprehensive and faster, while reducing the false positive rate. This work enables the successful detection of various failures, including disk full, process crashes, and both symmetric and asymmetric network partitions. For these scenarios, it achieves fault tolerance with a zero RPO and a minute-level RTO. 
 
   % Use comma as separator when inputting
   \thusetup{
