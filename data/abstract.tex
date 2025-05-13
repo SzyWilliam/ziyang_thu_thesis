@@ -4,46 +4,38 @@
 
 \begin{abstract}
 
-随着物联网 （IoT） 技术的飞速发展，时序数据库在存储和管理海量设备数据方面扮演着至关重要的角色。Apache IoTDB 作为一款流行的开源时序数据库，其在分布式部署场景下的高可用性 （High Availability, HA） 和容错能力 （Fault Tolerance, FT） 对于保障数据安全和服务连续性至关重要。
+随着物联网技术的飞速发展，时序数据库在存储和管理海量设备数据方面扮演着至关重要的角色。Apache IoTDB 作为一款流行的开源时序数据库，其在分布式部署场景下的高可用性和容错能力对于保障工业物联网应用服务连续性、数据安全性至关重要。
 
-然而，IoTDB 现有的高可用和容错机制存在对于故障的检测不够完全、检测时间较长、检测机制僵硬、对部分故障的容错和可用性不足的问题，需要进一步优化以满足日益增长的工业需求。
+在面临节点宕机、复杂网络非对称分区等故障时，Apache IoTDB会出现服务长时间不可用、性能退化、数据丢失等问题。
+针对现有问题，系统性地梳理总结分布式数据库的普遍故障场景的特性和共性，提出并实现一套针对 Apache IoTDB 的高可用与容错框架，通过系统各组件的协同，做到两个关键指标恢复点目标（RPO）为零、恢复时间目标（RTO）为分钟级的容错能力，是本文的研究核心。
 
-本论文针对 Apache IoTDB 现有的高可用和容错机制进行了深入分析，并在此基础上提出了一系列优化方案，对集群故障的更早、更全面、更准确地检测与研判，并通过集群现有能力的深度协同与优化，更快、更鲁棒的方式进行故障的转移和自动恢复，最终实现RPO为零、不会丢失任何已提交的数据，并达到RTO为分钟级、最大限度地减少服务中断对业务的影响的能力
+本文围绕着Apache IoTDB的高可用和容错能力展开研究，主要贡献如下：
 
-本工作的贡献如下：
+1. 对分布式时序数据库在运行中潜在的故障进行系统性的梳理、分类和分析。本文将种类繁多的故障总结为节点宕机、磁盘资源不足、网络分区（对称分区和非对称分区）、集群状态短暂不一致五类，分析每一种故障的原因、对系统的影响，并基于这些故障进行后续框架的设计和实验的验证。
 
-1. 提出了针对分布式系统故障场景和高可用架构的整体建模方法。本文研究了分布式系统中常见的故障种类，分析了故障的共性，并在此基础上提出了IoTDB高可用的整体方法论和架构。
+2. 提出针对 Apache IoTDB 系统的高可用与容错框架。该框架依赖共识协议提供的基础能力，划分为故障检测、故障恢复、\failover 三部分。框架明确系统各组件，即客户端（Session）、管理节点（ConfigNode）、数据节点（DataNode）之间的协同机制。
 
-
-2. 实现了高可用整体架构中的关键故障检测能力和自动容错和恢复能力。本文构建了更加完善的故障检测机制，并针对所有的故障建设自动容错能力，通过ConfigNode、客户端Session、服务端协调者、服务端共识模块等多个关键组件的协同，使得集群能够有效应对更广泛的故障类型，提升系统的韧性。
-
-
-3. 进行了大量的测试和实验，证明了该高可用架构能够有效解决现有问题并应对新的挑战，为构建高可靠的分布式系统提供了实践支撑和数据验证。
-
-实验结果表明，本工作的优化让IoTDB的故障检测能力更为完善、检测速度更为迅速、检测误报率下降。本文的工作能够顺利检测磁盘写满、进程宕机、网络对称分区、网络非对称分区等故障，并针对这些故障场景做到了RPO为零、RTO为分钟级的故障容错能力。
-
+3. 上述工作在 Apache IoTDB 系统中进行实现，并在测试环境中对框架能力做全面测试与评估。针对1中提出的五类故障场景，系统实现的故障容错机制能够有效工作，并实现 RPO 指标为零、RTO 指标为分钟级的效果。
 
   % 关键词用“英文逗号”分隔，输出时会自动处理为正确的分隔符
   \thusetup{
-    keywords = {工业物联网, 时序数据库, 高可用和容错, 故障检测和转移, RTO和RPO},
+    keywords = {工业物联网, 时序数据库, 高可用和容错, 故障检测和故障转移, RTO和RPO},
   }
 \end{abstract}
 
 \begin{abstract*}
   
-With the rapid development of Internet of Things (IoT) technology, time-series databases play a crucial role in storing and managing massive amounts of device data. As a popular open-source time-series database, Apache IoTDB's High Availability (HA) and Fault Tolerance (FT) in distributed deployment scenarios are essential for ensuring data security and service continuity.
+  With the rapid development of Internet of Things technology, time series databases play a crucial role in storing and managing massive amounts of device data. As a popular open-source time series database, the high availability and fault tolerance capabilities of Apache IoTDB in distributed deployment scenarios are essential for ensuring the continuity of industrial IoT application services and data security.
 
-However, IoTDB's existing HA and FT mechanisms suffer from issues such as incomplete fault detection, long detection times, rigid detection mechanisms, and insufficient fault tolerance and availability for certain types of failures. These require further optimization to meet growing industrial demands.
+  Apache IoTDB distributed time series database has potential areas for optimization when facing failures such as process crash and complex asymmetric network partitions, where the Recovery Time Objective (RTO) is in the order of hours and the Recovery Point Objective (RPO) is non-zero. How to systematically summarize common failure scenarios in actual operation, propose and implement a high availability and fault tolerance framework specifically for Apache IoTDB, and achieve zero RPO and minute-level RTO fault tolerance capabilities through the collaboration of various system components is the key problem studied in this paper.
 
-This thesis conducts an in-depth analysis of Apache IoTDB's existing HA and FT mechanisms and, based on this analysis, proposes a series of optimization schemes aimed at achieving earlier, more comprehensive, and more accurate detection and assessment of cluster failures. Through deep coordination and optimization of the cluster's existing capabilities, it facilitates faster and more robust failover and automatic recovery. The ultimate goal is to achieve a Recovery Point Objective (RPO) of zero, ensuring no loss of committed data, and a Recovery Time Objective (RTO) at the minute level, minimizing the impact of service interruptions on business operations.
+  This paper focuses on the high availability and fault tolerance capabilities of Apache IoTDB, with the following main contributions:
 
-The contributions of this work are as follows:
-
-Proposed a holistic modeling method for distributed system failure scenarios and HA architectures. This paper studies common types of failures in distributed systems, analyzes their common characteristics, and based on this, proposes an overall methodology and architecture for IoTDB high availability.
-Implemented key fault detection capabilities and automatic fault tolerance and recovery capabilities within the overall HA architecture. This work establishes more complete fault detection mechanisms and builds automatic fault tolerance capabilities for all identified failures. Through the coordination of multiple key components such as ConfigNode, client Session, server-side Coordinator, and server-side Consensus module, the cluster is enabled to effectively handle a wider range of failure types, enhancing system resilience.
-Conducted extensive testing and experiments to demonstrate that the proposed HA architecture effectively addresses existing problems and meets new challenges, providing practical support and empirical validation for building highly reliable distributed systems.
-Experimental results show that the optimizations in this work enhance IoTDB's fault detection capabilities, making them more complete and faster, while reducing the false positive rate. This work successfully detects failures such as disk full, process crashes, symmetric network partitions, and asymmetric network partitions, and achieves fault tolerance with an RPO of zero and a minute-level RTO for these failure scenarios.
-
+  1. A systematic review, classification, and analysis of potential failures in distributed time series databases during operation. This paper summarizes the wide variety of failures into five categories: node downtime, insufficient disk resources, network partitions (symmetric and asymmetric), and transient cluster state inconsistency, and analyzes the cause and impact of each failure on the system. This work serves as the fundamental basis for the subsequent design of the high availability and fault tolerance framework.
+  
+  2. A high availability and fault tolerance framework for the Apache IoTDB system is proposed. This framework relies on the basic capabilities provided by consensus protocols and is divided into three parts: fault detection, fault recovery, and failover. The framework clarifies the collaboration mechanism among various system components, namely the Session, ConfigNode, and DataNode.
+  
+  3. The aforementioned work has been implemented in the Apache IoTDB system and fully tested and evaluated for framework capabilities in a test environment. For the five types of failure scenarios proposed in point 1, the implemented fault tolerance mechanism effectively works and achieves results with an RPO of zero and an RTO on the order of minutes.
 
 
   % Use comma as separator when inputting
